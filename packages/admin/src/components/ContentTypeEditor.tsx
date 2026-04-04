@@ -21,6 +21,7 @@ import type {
 import { cn } from "../lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { FieldEditor } from "./FieldEditor";
+import { SaveButton } from "./SaveButton";
 
 // Regex patterns for slug generation
 const SLUG_INVALID_CHARS_PATTERN = /[^a-z0-9]+/g;
@@ -149,8 +150,6 @@ export function ContentTypeEditor({
 	const [fieldSaving, setFieldSaving] = React.useState(false);
 	const [deleteFieldTarget, setDeleteFieldTarget] = React.useState<SchemaField | null>(null);
 
-	const urlPatternValid = !urlPattern || urlPattern.includes("{slug}");
-
 	// Track whether form has unsaved changes
 	const hasChanges = React.useMemo(() => {
 		if (isNew) return slug && label;
@@ -269,7 +268,7 @@ export function ContentTypeEditor({
 	const fields = collection?.fields ?? [];
 
 	return (
-		<div className="space-y-6">
+		<form onSubmit={handleSubmit} className="relative space-y-6">
 			{/* Header */}
 			<div className="flex items-center space-x-4">
 				<Link
@@ -279,7 +278,7 @@ export function ContentTypeEditor({
 				>
 					<ArrowLeft className="h-5 w-5" />
 				</Link>
-				<div className="flex-1">
+				<div>
 					<h1 className="text-2xl font-bold">{isNew ? "New Content Type" : collection?.label}</h1>
 					{!isNew && (
 						<p className="text-kumo-subtle text-sm">
@@ -305,73 +304,175 @@ export function ContentTypeEditor({
 			)}
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Settings form */}
-				<div className="lg:col-span-1">
-					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="rounded-lg border p-4 space-y-4">
-							<h2 className="font-semibold">Settings</h2>
+				{/* Settings */}
+				<div className="lg:col-span-1 space-y-4">
+					<div className="rounded-lg border p-4 space-y-4">
+						<h2 className="font-semibold">Settings</h2>
 
-							<Input
-								label="Label (Singular)"
-								value={labelSingular}
-								onChange={(e) => handleSingularLabelChange(e.target.value)}
-								placeholder="Post"
-								disabled={isFromCode}
-							/>
+						<Input
+							label="Label (Singular)"
+							value={labelSingular}
+							onChange={(e) => handleSingularLabelChange(e.target.value)}
+							placeholder="Post"
+							disabled={isFromCode}
+						/>
 
-							<Input
-								label="Label (Plural)"
-								value={label}
-								onChange={(e) => handleLabelChange(e.target.value)}
-								placeholder="Posts"
-								disabled={isFromCode}
-							/>
+						<Input
+							label="Label (Plural)"
+							value={label}
+							onChange={(e) => handleLabelChange(e.target.value)}
+							placeholder="Posts"
+							disabled={isFromCode}
+						/>
 
-							{isNew && (
-								<div>
-									<Input
-										label="Slug"
-										value={slug}
-										onChange={(e) => setSlug(e.target.value)}
-										placeholder="posts"
-										disabled={!isNew}
-									/>
-									<p className="text-xs text-kumo-subtle mt-2">Used in URLs and API endpoints</p>
-								</div>
-							)}
-
-							<InputArea
-								label="Description"
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								placeholder="A brief description of this content type"
-								rows={3}
-								disabled={isFromCode}
-							/>
-
+						{isNew && (
 							<div>
 								<Input
-									label="URL Pattern"
-									value={urlPattern}
-									onChange={(e) => setUrlPattern(e.target.value)}
-									placeholder={`/${slug === "pages" ? "" : `${slug}/`}{slug}`}
+									label="Slug"
+									value={slug}
+									onChange={(e) => setSlug(e.target.value)}
+									placeholder="posts"
+									disabled={!isNew}
+								/>
+								<p className="text-xs text-kumo-subtle mt-2">Used in URLs and API endpoints</p>
+							</div>
+						)}
+
+						<InputArea
+							label="Description"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							placeholder="A brief description of this content type"
+							rows={3}
+							disabled={isFromCode}
+						/>
+
+						<div>
+							<Input
+								label="URL Pattern"
+								value={urlPattern}
+								onChange={(e) => setUrlPattern(e.target.value)}
+								placeholder={`/${slug === "pages" ? "" : `${slug}/`}{slug}`}
+								disabled={isFromCode}
+							/>
+							{urlPattern && !urlPattern.includes("{slug}") && (
+								<p className="text-xs text-kumo-danger mt-2">
+									Pattern must include a {"{slug}"} placeholder
+								</p>
+							)}
+							<p className="text-xs text-kumo-subtle mt-1">
+								Pattern for generating URLs, e.g. /blog/{"{slug}"}
+							</p>
+						</div>
+
+						<div className="space-y-3">
+							<Label>Features</Label>
+							{SUPPORT_OPTIONS.map((option) => (
+								<label
+									key={option.value}
+									className={cn(
+										"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
+										isFromCode && "opacity-60 cursor-not-allowed",
+									)}
+								>
+									<input
+										type="checkbox"
+										checked={supports.includes(option.value)}
+										onChange={() => handleSupportToggle(option.value)}
+										className="mt-1 rounded border-kumo-line"
+										disabled={isFromCode}
+									/>
+									<div>
+										<span className="text-sm font-medium">{option.label}</span>
+										<p className="text-xs text-kumo-subtle">{option.description}</p>
+									</div>
+								</label>
+							))}
+						</div>
+
+						{/* SEO toggle */}
+						<div className="pt-2 border-t">
+							<label
+								className={cn(
+									"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
+									isFromCode && "opacity-60 cursor-not-allowed",
+								)}
+							>
+								<input
+									type="checkbox"
+									checked={hasSeo}
+									onChange={() => setHasSeo(!hasSeo)}
+									className="mt-1 rounded border-kumo-line"
 									disabled={isFromCode}
 								/>
-								{urlPattern && !urlPattern.includes("{slug}") && (
-									<p className="text-xs text-kumo-danger mt-2">
-										Pattern must include a {"{slug}"} placeholder
+								<div>
+									<span className="text-sm font-medium">SEO</span>
+									<p className="text-xs text-kumo-subtle">
+										Add SEO metadata fields (title, description, image) and include in sitemap
 									</p>
-								)}
-								<p className="text-xs text-kumo-subtle mt-1">
-									Pattern for generating URLs, e.g. /blog/{"{slug}"}
-								</p>
-							</div>
+								</div>
+							</label>
+						</div>
+					</div>
 
-							<div className="space-y-3">
-								<Label>Features</Label>
-								{SUPPORT_OPTIONS.map((option) => (
+					{/* Comments settings — only for existing collections */}
+					{!isNew && (
+						<div className="rounded-lg border p-4 space-y-4">
+							<h2 className="font-semibold">Comments</h2>
+
+							<label
+								className={cn(
+									"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
+									isFromCode && "opacity-60 cursor-not-allowed",
+								)}
+							>
+								<input
+									type="checkbox"
+									checked={commentsEnabled}
+									onChange={() => setCommentsEnabled(!commentsEnabled)}
+									className="mt-1 rounded border-kumo-line"
+									disabled={isFromCode}
+								/>
+								<div>
+									<span className="text-sm font-medium">Enable comments</span>
+									<p className="text-xs text-kumo-subtle">
+										Allow visitors to leave comments on this collection's content
+									</p>
+								</div>
+							</label>
+
+							{commentsEnabled && (
+								<>
+									<Select
+										label="Moderation"
+										value={commentsModeration}
+										onValueChange={(v) =>
+											setCommentsModeration((v as "all" | "first_time" | "none") ?? "first_time")
+										}
+										items={{
+											all: "All comments require approval",
+											first_time: "First-time commenters only",
+											none: "No moderation (auto-approve all)",
+										}}
+										disabled={isFromCode}
+									/>
+
+									<Input
+										label="Close comments after (days)"
+										type="number"
+										min={0}
+										value={String(commentsClosedAfterDays)}
+										onChange={(e) => {
+											const parsed = Number.parseInt(e.target.value, 10);
+											setCommentsClosedAfterDays(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
+										}}
+										disabled={isFromCode}
+									/>
+									<p className="text-xs text-kumo-subtle -mt-2">
+										Set to 0 to never close comments automatically.
+									</p>
+
 									<label
-										key={option.value}
 										className={cn(
 											"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
 											isFromCode && "opacity-60 cursor-not-allowed",
@@ -379,205 +480,113 @@ export function ContentTypeEditor({
 									>
 										<input
 											type="checkbox"
-											checked={supports.includes(option.value)}
-											onChange={() => handleSupportToggle(option.value)}
+											checked={commentsAutoApproveUsers}
+											onChange={() => setCommentsAutoApproveUsers(!commentsAutoApproveUsers)}
 											className="mt-1 rounded border-kumo-line"
 											disabled={isFromCode}
 										/>
 										<div>
-											<span className="text-sm font-medium">{option.label}</span>
-											<p className="text-xs text-kumo-subtle">{option.description}</p>
+											<span className="text-sm font-medium">Auto-approve authenticated users</span>
+											<p className="text-xs text-kumo-subtle">
+												Comments from logged-in CMS users are approved automatically
+											</p>
 										</div>
 									</label>
-								))}
-							</div>
-
-							{/* SEO toggle */}
-							<div className="pt-2 border-t">
-								<label
-									className={cn(
-										"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
-										isFromCode && "opacity-60 cursor-not-allowed",
-									)}
-								>
-									<input
-										type="checkbox"
-										checked={hasSeo}
-										onChange={() => setHasSeo(!hasSeo)}
-										className="mt-1 rounded border-kumo-line"
-										disabled={isFromCode}
-									/>
-									<div>
-										<span className="text-sm font-medium">SEO</span>
-										<p className="text-xs text-kumo-subtle">
-											Add SEO metadata fields (title, description, image) and include in sitemap
-										</p>
-									</div>
-								</label>
-							</div>
-						</div>
-
-						{/* Comments settings — only for existing collections */}
-						{!isNew && (
-							<div className="rounded-lg border p-4 space-y-4">
-								<h2 className="font-semibold">Comments</h2>
-
-								<label
-									className={cn(
-										"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
-										isFromCode && "opacity-60 cursor-not-allowed",
-									)}
-								>
-									<input
-										type="checkbox"
-										checked={commentsEnabled}
-										onChange={() => setCommentsEnabled(!commentsEnabled)}
-										className="mt-1 rounded border-kumo-line"
-										disabled={isFromCode}
-									/>
-									<div>
-										<span className="text-sm font-medium">Enable comments</span>
-										<p className="text-xs text-kumo-subtle">
-											Allow visitors to leave comments on this collection's content
-										</p>
-									</div>
-								</label>
-
-								{commentsEnabled && (
-									<>
-										<Select
-											label="Moderation"
-											value={commentsModeration}
-											onValueChange={(v) =>
-												setCommentsModeration((v as "all" | "first_time" | "none") ?? "first_time")
-											}
-											items={{
-												all: "All comments require approval",
-												first_time: "First-time commenters only",
-												none: "No moderation (auto-approve all)",
-											}}
-											disabled={isFromCode}
-										/>
-
-										<Input
-											label="Close comments after (days)"
-											type="number"
-											min={0}
-											value={String(commentsClosedAfterDays)}
-											onChange={(e) => {
-												const parsed = Number.parseInt(e.target.value, 10);
-												setCommentsClosedAfterDays(Number.isNaN(parsed) ? 0 : Math.max(0, parsed));
-											}}
-											disabled={isFromCode}
-										/>
-										<p className="text-xs text-kumo-subtle -mt-2">
-											Set to 0 to never close comments automatically.
-										</p>
-
-										<label
-											className={cn(
-												"flex items-start space-x-3 p-2 rounded-md cursor-pointer hover:bg-kumo-tint/50",
-												isFromCode && "opacity-60 cursor-not-allowed",
-											)}
-										>
-											<input
-												type="checkbox"
-												checked={commentsAutoApproveUsers}
-												onChange={() => setCommentsAutoApproveUsers(!commentsAutoApproveUsers)}
-												className="mt-1 rounded border-kumo-line"
-												disabled={isFromCode}
-											/>
-											<div>
-												<span className="text-sm font-medium">
-													Auto-approve authenticated users
-												</span>
-												<p className="text-xs text-kumo-subtle">
-													Comments from logged-in CMS users are approved automatically
-												</p>
-											</div>
-										</label>
-									</>
-								)}
-							</div>
-						)}
-
-						{!isFromCode && (
-							<Button
-								type="submit"
-								disabled={!hasChanges || !urlPatternValid || isSaving}
-								className="w-full"
-							>
-								{isSaving ? "Saving..." : isNew ? "Create Content Type" : "Save Changes"}
-							</Button>
-						)}
-					</form>
-				</div>
-
-				{/* Fields section - only show for existing collections */}
-				{!isNew && (
-					<div className="lg:col-span-2">
-						<div className="rounded-lg border">
-							<div className="flex items-center justify-between p-4 border-b">
-								<div>
-									<h2 className="font-semibold">Fields</h2>
-									<p className="text-sm text-kumo-subtle">
-										{SYSTEM_FIELDS.length} system + {fields.length} custom field
-										{fields.length !== 1 ? "s" : ""}
-									</p>
-								</div>
-								{!isFromCode && (
-									<Button icon={<Plus />} onClick={handleAddField}>
-										Add Field
-									</Button>
-								)}
-							</div>
-
-							{/* System fields - always shown */}
-							<div className="border-b bg-kumo-tint/30">
-								<div className="px-4 py-2 text-xs font-medium text-kumo-subtle uppercase tracking-wider">
-									System Fields
-								</div>
-								<div className="divide-y divide-kumo-line/50">
-									{SYSTEM_FIELDS.map((field) => (
-										<SystemFieldRow key={field.slug} field={field} />
-									))}
-								</div>
-							</div>
-
-							{/* Custom fields */}
-							{fields.length === 0 ? (
-								<div className="p-8 text-center text-kumo-subtle">
-									<Database className="mx-auto h-12 w-12 mb-4 opacity-50" />
-									<p className="font-medium">No custom fields yet</p>
-									<p className="text-sm">Add fields to define the structure of your content</p>
-									{!isFromCode && (
-										<Button className="mt-4" icon={<Plus />} onClick={handleAddField}>
-											Add First Field
-										</Button>
-									)}
-								</div>
-							) : (
-								<>
-									<div className="px-4 py-2 text-xs font-medium text-kumo-subtle uppercase tracking-wider border-b">
-										Custom Fields
-									</div>
-									<div className="divide-y">
-										{fields.map((field) => (
-											<FieldRow
-												key={field.id}
-												field={field}
-												isFromCode={isFromCode}
-												onEdit={() => handleEditField(field)}
-												onDelete={() => setDeleteFieldTarget(field)}
-											/>
-										))}
-									</div>
 								</>
 							)}
 						</div>
+					)}
+				</div>
+
+				{/* Fields section */}
+				<div className="lg:col-span-2">
+					<div className="rounded-lg border">
+						<div className="flex items-center justify-between p-4 border-b">
+							<div>
+								<h2 className="font-semibold">Fields</h2>
+								<p className="text-sm text-kumo-subtle">
+									{isNew ? (
+										<>{SYSTEM_FIELDS.length} system fields included by default</>
+									) : (
+										<>
+											{SYSTEM_FIELDS.length} system + {fields.length} custom field
+											{fields.length !== 1 ? "s" : ""}
+										</>
+									)}
+								</p>
+							</div>
+							{!isNew && !isFromCode && (
+								<Button icon={<Plus />} onClick={handleAddField}>
+									Add Field
+								</Button>
+							)}
+						</div>
+
+						{/* System fields - always shown */}
+						<div className="border-b bg-kumo-tint/30">
+							<div className="px-4 py-2 text-xs font-medium text-kumo-subtle uppercase tracking-wider">
+								System Fields
+							</div>
+							<div className="divide-y divide-kumo-line/50">
+								{SYSTEM_FIELDS.map((field) => (
+									<SystemFieldRow key={field.slug} field={field} />
+								))}
+							</div>
+						</div>
+
+						{/* Custom fields */}
+						{isNew ? (
+							<div className="p-8 text-center text-kumo-subtle">
+								<Database className="mx-auto h-12 w-12 mb-4 opacity-50" />
+								<p className="font-medium">Custom fields</p>
+								<p className="text-sm">You can add custom fields after creating the content type</p>
+							</div>
+						) : fields.length === 0 ? (
+							<div className="p-8 text-center text-kumo-subtle">
+								<Database className="mx-auto h-12 w-12 mb-4 opacity-50" />
+								<p className="font-medium">No custom fields yet</p>
+								<p className="text-sm">Add fields to define the structure of your content</p>
+								{!isFromCode && (
+									<Button className="mt-4" icon={<Plus />} onClick={handleAddField}>
+										Add First Field
+									</Button>
+								)}
+							</div>
+						) : (
+							<>
+								<div className="px-4 py-2 text-xs font-medium text-kumo-subtle uppercase tracking-wider border-b">
+									Custom Fields
+								</div>
+								<div className="divide-y">
+									{fields.map((field) => (
+										<FieldRow
+											key={field.id}
+											field={field}
+											isFromCode={isFromCode}
+											onEdit={() => handleEditField(field)}
+											onDelete={() => setDeleteFieldTarget(field)}
+										/>
+									))}
+								</div>
+							</>
+						)}
 					</div>
-				)}
+				</div>
 			</div>
+
+			{/*
+			 * Save button -- last in DOM for correct tab/screen-reader order
+			 * (users reach it after the form fields), but placed visually in the
+			 * top-right header area via absolute positioning for sighted users.
+			 */}
+			{!isFromCode && (
+				<SaveButton
+					type="submit"
+					isDirty={isNew || !!hasChanges}
+					isSaving={isSaving || false}
+					className="absolute top-0 right-0"
+				/>
+			)}
 
 			{/* Field editor dialog */}
 			<FieldEditor
@@ -608,7 +617,7 @@ export function ContentTypeEditor({
 					}
 				}}
 			/>
-		</div>
+		</form>
 	);
 }
 
