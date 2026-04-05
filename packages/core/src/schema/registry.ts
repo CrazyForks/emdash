@@ -129,6 +129,9 @@ export class SchemaRegistry {
 			throw new SchemaError(`Collection "${input.slug}" already exists`, "COLLECTION_EXISTS");
 		}
 
+		// Check label uniqueness
+		await this.checkLabelUniqueness(input.label, input.labelSingular);
+
 		const id = ulid();
 
 		// Insert collection record and create content table in a transaction
@@ -175,6 +178,11 @@ export class SchemaRegistry {
 		if (!existing) {
 			throw new SchemaError(`Collection "${slug}" not found`, "COLLECTION_NOT_FOUND");
 		}
+
+		// Check label uniqueness (excluding the collection being updated)
+		const newLabel = input.label ?? existing.label;
+		const newLabelSingular = input.labelSingular ?? existing.labelSingular;
+		await this.checkLabelUniqueness(newLabel, newLabelSingular, slug);
 
 		const now = new Date().toISOString();
 
@@ -234,6 +242,41 @@ export class SchemaRegistry {
 		}
 
 		return updated;
+	}
+
+	/**
+	 * Check that a collection's labels are unique across all collections.
+	 * Pass `excludeSlug` to skip the collection being updated.
+	 */
+	private async checkLabelUniqueness(
+		label: string,
+		labelSingular?: string,
+		excludeSlug?: string,
+	): Promise<void> {
+		let query = this.db
+			.selectFrom("_emdash_collections")
+			.select(["slug", "label", "label_singular"]);
+
+		if (excludeSlug) {
+			query = query.where("slug", "!=", excludeSlug);
+		}
+
+		const others = await query.execute();
+
+		for (const other of others) {
+			if (other.label === label) {
+				throw new SchemaError(
+					`A content type with the label "${label}" already exists`,
+					"LABEL_EXISTS",
+				);
+			}
+			if (labelSingular && other.label_singular === labelSingular) {
+				throw new SchemaError(
+					`A content type with the singular label "${labelSingular}" already exists`,
+					"LABEL_EXISTS",
+				);
+			}
+		}
 	}
 
 	/**

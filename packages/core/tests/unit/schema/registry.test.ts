@@ -374,7 +374,7 @@ describe("SchemaRegistry", () => {
 	});
 
 	describe("Label Uniqueness", () => {
-		it.todo("should reject creating a collection with a duplicate label", async () => {
+		it("should reject creating a collection with a duplicate label", async () => {
 			await registry.createCollection({ slug: "posts", label: "Articles" });
 
 			await expect(
@@ -382,7 +382,7 @@ describe("SchemaRegistry", () => {
 			).rejects.toThrow();
 		});
 
-		it.todo("should reject creating a collection with a duplicate singular label", async () => {
+		it("should reject creating a collection with a duplicate singular label", async () => {
 			await registry.createCollection({
 				slug: "posts",
 				label: "Posts",
@@ -398,7 +398,7 @@ describe("SchemaRegistry", () => {
 			).rejects.toThrow();
 		});
 
-		it.todo("should reject updating a collection label to one already in use", async () => {
+		it("should reject updating a collection label to one already in use", async () => {
 			await registry.createCollection({ slug: "posts", label: "Posts" });
 			await registry.createCollection({ slug: "pages", label: "Pages" });
 
