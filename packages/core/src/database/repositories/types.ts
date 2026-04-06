@@ -9,6 +9,7 @@ export interface CreateContentInput {
 	primaryBylineId?: string | null;
 	locale?: string;
 	translationOf?: string;
+	createdAt?: string | null;
 	publishedAt?: string | null;
 }
 

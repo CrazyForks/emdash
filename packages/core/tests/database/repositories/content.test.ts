@@ -95,6 +95,29 @@ describe("ContentRepository", () => {
 			).rejects.toThrow(EmDashValidationError);
 		});
 
+		it("should use provided createdAt instead of current time", async () => {
+			const createdAt = "2019-01-01T12:00:00.000Z";
+			const content = await repo.create({
+				type: "post",
+				data: { title: "Old Post" },
+				createdAt,
+			});
+
+			expect(content.createdAt).toBe(createdAt);
+		});
+
+		it("should use provided publishedAt when creating published content", async () => {
+			const publishedAt = "2022-03-15T09:30:00.000Z";
+			const content = await repo.create({
+				type: "post",
+				data: { title: "Published Post" },
+				status: "published",
+				publishedAt,
+			});
+
+			expect(content.publishedAt).toBe(publishedAt);
+		});
+
 		it("should throw error for duplicate type+slug", async () => {
 			await repo.create({
 				type: "post",

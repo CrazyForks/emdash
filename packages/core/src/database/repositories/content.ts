@@ -115,6 +115,7 @@ export class ContentRepository {
 			primaryBylineId,
 			locale,
 			translationOf,
+			createdAt,
 			publishedAt,
 		} = input;
 
@@ -155,7 +156,7 @@ export class ContentRepository {
 			status,
 			authorId || null,
 			primaryBylineId ?? null,
-			now,
+			createdAt || now,
 			now,
 			publishedAt || null,
 			1,

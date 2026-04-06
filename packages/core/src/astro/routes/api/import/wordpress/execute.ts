@@ -232,6 +232,12 @@ async function importContent(
 				bylineCache,
 			);
 
+			// Preserve original WordPress dates.
+			// postDateGmt is always UTC; fall back to postDate if absent.
+			const sourceDateStr = post.postDateGmt || post.postDate;
+			const createdAt = sourceDateStr ? new Date(sourceDateStr).toISOString() : undefined;
+			const publishedAt = status === "published" && createdAt ? createdAt : undefined;
+
 			// Create the content item
 			const createResult = await emdash.handleContentCreate(collection, {
 				data,
@@ -240,6 +246,8 @@ async function importContent(
 				authorId,
 				bylines: bylineId ? [{ bylineId }] : undefined,
 				locale,
+				createdAt,
+				publishedAt,
 			});
 
 			if (createResult.success) {
